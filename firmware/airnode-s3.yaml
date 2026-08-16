@@ -1,0 +1,101 @@
+# AirNode-S3 rev A - ESPHome configuration
+# Board: ESP32-S3-WROOM-1-N8R2, I2C on GPIO8/9 (SDA/SCL),
+# UART2 on GPIO16/17 (PMS5003), 3x SK6812MINI-E on GPIO12.
+
+esphome:
+  name: airnode-s3
+  friendly_name: AirNode-S3
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  framework:
+    type: esp-idf
+
+# WiFi (set secrets: wifi_ssid / wifi_password)
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "AirNode-S3 Fallback"
+    password: !secret ap_password
+
+captive_portal:
+
+logger:
+  baud_rate: 115200
+
+api:
+
+ota:
+  - platform: esphome
+
+# I2C bus: SCD41 (0x62), SGP40 (0x59), SHT40 (0x44); R6/R7 = 4.7k pull-ups
+i2c:
+  id: bus_i2c
+  sda: GPIO8
+  scl: GPIO9
+  scan: true
+  frequency: 100kHz
+
+# UART2 -> PMS5003 (9600 baud, 3.3V logic; sensor itself is 5V powered)
+uart:
+  id: pms_uart
+  rx_pin: GPIO16
+  tx_pin: GPIO17
+  baud_rate: 9600
+
+# 3x SK6812MINI-E status LEDs (air-quality traffic light), data via R3 470R
+light:
+  - platform: esp32_rmt_led_strip
+    pin: GPIO12
+    num_leds: 3
+    chipset: sk6812
+    rgb_order: GRB
+    name: "AQI Status LEDs"
+    id: aqi_leds
+
+sensor:
+  - platform: scd4x
+    i2c_id: bus_i2c
+    co2:
+      name: "CO2"
+      id: co2
+    temperature:
+      name: "SCD41 Temperature"
+    humidity:
+      name: "SCD41 Humidity"
+    automatic_self_calibration: true
+    update_interval: 60s
+
+  - platform: sgp40
+    i2c_id: bus_i2c
+    voc_index:
+      name: "VOC Index"
+      id: voc_index
+    compensation:
+      temperature_source: sht40_temperature
+      humidity_source: sht40_humidity
+    update_interval: 60s
+
+  - platform: sht4x
+    i2c_id: bus_i2c
+    temperature:
+      name: "Temperature"
+      id: sht40_temperature
+    humidity:
+      name: "Humidity"
+      id: sht40_humidity
+    update_interval: 60s
+
+  - platform: pmsx003
+    type: PMSX003
+    uart_id: pms_uart
+    pm_1_0:
+      name: "PM <1.0um"
+    pm_2_5:
+      name: "PM <2.5um"
+      id: pm25
+    pm_10_0:
+      name: "PM <10um"
+    update_interval: 60s

@@ -1,0 +1,81 @@
+# RoomNode-C3-Mini (rev A) - ESPHome configuration
+# ESP32-C3-MINI-1-N4: SHT40 on I2C (GPIO6/7), ALS-PT19 on GPIO3 (ADC),
+# SK6812MINI-E on GPIO10, AM312 PIR on GPIO4.
+esphome:
+  name: roomnode-c3-mini
+  friendly_name: RoomNode-C3-Mini
+
+esp32:
+  board: esp32-c3-devkitm-1
+  variant: esp32c3
+  framework:
+    type: esp-idf
+
+# Enable USB logging via the on-board USB-C (GPIO18/19 USB-Serial-JTAG)
+logger:
+  hardware_uart: USB_SERIAL_JTAG
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "RoomNode-C3-Mini Fallback"
+    password: !secret ap_password
+
+captive_portal:
+
+# I2C bus: SDA=GPIO6, SCL=GPIO7 (4.7k pull-ups R6/R7 on board)
+i2c:
+  sda: GPIO6
+  scl: GPIO7
+  scan: true
+  frequency: 100kHz
+
+# SHT40 temperature / humidity (addr 0x44)
+sensor:
+  - platform: sht4x
+    temperature:
+      name: "Temperature"
+    humidity:
+      name: "Humidity"
+    address: 0x44
+    update_interval: 60s
+
+  # ALS-PT19 analog light sensor: GPIO3 = ADC1_CH3, R8 10k load to GND
+  - platform: adc
+    pin: GPIO3
+    attenuation: 12db
+    update_interval: 10s
+    name: "Ambient Light"
+    unit_of_measurement: "lx (raw)"
+    filters:
+      - multiply: 3.3   # report as volts; scale to taste after calibration
+
+# 1x SK6812MINI-E on GPIO10 (via R3 470R), powered from 5V
+light:
+  - platform: neopixelbus
+    type: GRB
+    variant: sk6812
+    pin: GPIO10
+    num_leds: 1
+    name: "Status LED"
+    default_transition_length: 0.2s
+
+# AM312 PIR on J3, output to GPIO4 (3.3V logic)
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO4
+      mode:
+        input: true
+        pulldown: true
+    name: "Motion"
+    device_class: motion
