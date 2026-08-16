@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+docs/datasheets/*.pdf
+models/*.step
+models/*.STEP
+renders/*.png

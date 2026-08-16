@@ -20,9 +20,23 @@ boards/<name>/     KiCad 8 project (.kicad_pro/.kicad_sch/.kicad_pcb) + build.py
 firmware/          ESPHome YAML per board
 docs/              component manifest + datasheets/
 models/            official Espressif STEP 3D models + Sensirion SCD4x STEP
-renders/           PNG top/bottom + isometric 3D board renders
-tools/             kicad_gen.py (KiCad 8 generator + PNG renderer), render3d.py (isometric 3D renderer)
+renders/           SVG (in git) + PNG/3D board renders (generated)
+tools/             kicad_gen.py (KiCad 8 generator + PNG renderer), render3d.py (isometric 3D), render_svg.py
 ```
+
+## Renders
+
+| Board | Top view |
+|---|---|
+| RoomNode-S3 | ![roomnode-s3](renders/roomnode-s3_top.svg) |
+| RoomNode-C6 | ![roomnode-c6](renders/roomnode-c6_top.svg) |
+| RoomNode-C3-Mini | ![roomnode-c3-mini](renders/roomnode-c3-mini_top.svg) |
+| AirNode-S3 | ![airnode-s3](renders/airnode-s3_top.svg) |
+
+Binary assets (datasheet PDFs, STEP 3D models, PNG renders) are not stored in git —
+run `bash tools/fetch-assets.sh` to download them into `docs/datasheets/` and `models/`,
+and `python3 boards/<name>/build.py` + `tools/render3d.py`/`render_svg.py` to regenerate renders.
+Indexes: `docs/datasheets/README.md`, `models/README.md`.
 
 ## Design notes
 
@@ -34,4 +48,4 @@ tools/             kicad_gen.py (KiCad 8 generator + PNG renderer), render3d.py 
 
 Files are generated programmatically (`python3 boards/<name>/build.py`) and are standard KiCad 8 format — open them in KiCad 8/9 to continue routing or run DRC.
 
-Generated with the help of kicad-happy design-review checklists.
+Generated with the help of [kicad-happy](https://github.com/aklofas/kicad-happy) design-review checklists.
