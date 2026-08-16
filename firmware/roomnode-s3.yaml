@@ -1,0 +1,100 @@
+# RoomNode-S3 rev A — ESPHome configuration
+# ESP32-S3-WROOM-1-N8R2 | SHT40 + SGP40 + BH1750 | LD2450 mmWave | AM312 PIR | 4x SK6812MINI-E
+
+esphome:
+  name: roomnode-s3
+
+esp32:
+  board: esp32-s3-devkitc-1
+  framework:
+    type: esp-idf
+
+logger:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "RoomNode-S3 Fallback"
+
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+# I2C: SDA GPIO8, SCL GPIO9 (4.7k pull-ups on board)
+i2c:
+  sda: GPIO8
+  scl: GPIO9
+  scan: true
+  frequency: 100kHz
+
+# UART for HLK-LD2450 mmWave (J2: 5V, GND, TX, RX) 256000 baud
+uart:
+  id: ld2450_uart
+  tx_pin: GPIO18
+  rx_pin: GPIO17
+  baud_rate: 256000
+
+ld2450:
+  uart_id: ld2450_uart
+
+binary_sensor:
+  # AM312 PIR on J3 (VCC, OUT, GND) -> GPIO16
+  - platform: gpio
+    pin:
+      number: GPIO16
+      mode: INPUT
+    name: "PIR Motion"
+    device_class: motion
+  # LD2450 presence targets
+  - platform: ld2450
+    has_target:
+      name: "Presence"
+    has_moving_target:
+      name: "Presence Moving"
+    has_still_target:
+      name: "Presence Still"
+
+sensor:
+  - platform: sht4x
+    temperature:
+      name: "Temperature"
+      id: room_temp
+    humidity:
+      name: "Humidity"
+      id: room_hum
+    address: 0x44
+    update_interval: 60s
+
+  - platform: sgp40
+    name: "VOC Index"
+    address: 0x59
+    compensation:
+      temperature_source: room_temp
+      humidity_source: room_hum
+    update_interval: 60s
+
+  - platform: bh1750
+    name: "Illuminance"
+    address: 0x23
+    update_interval: 60s
+
+  - platform: ld2450
+    target_count:
+      name: "Presence Target Count"
+    zone_count:
+      name: "Zone Count"
+
+# 4x SK6812MINI-E RGB LEDs, data on GPIO4 via 470R
+light:
+  - platform: neopixelbus
+    pin: GPIO4
+    num_leds: 4
+    variant: SK6812
+    type: GRB
+    method: ESP32_RMT
+    name: "Status LEDs"

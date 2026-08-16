@@ -1,0 +1,120 @@
+# RoomNode-C6 (rev A) - ESPHome configuration
+# ESP32-C6: WiFi6 + BLE5.3 presence tracking + 802.15.4 (Thread/Zigbee capable)
+esphome:
+  name: roomnode-c6
+  friendly_name: RoomNode-C6
+
+esp32:
+  board: esp32-c6-devkitc-1
+  variant: esp32c6
+  framework:
+    type: esp-idf
+    version: recommended
+
+logger:
+api:
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "RoomNode-C6 Fallback"
+    password: !secret ap_password
+
+captive_portal:
+
+# ---- BLE presence tracking (primary role) ----
+esp32_ble_tracker:
+  scan_parameters:
+    interval: 1100ms
+    window: 300ms
+    active: true
+    continuous: true
+
+ble_presence:
+  devices:
+    - mac: "AA:BB:CC:DD:EE:01"   # example: phone / watch
+      name: "Phone Alice"
+      timeout: 5min
+    - mac: "AA:BB:CC:DD:EE:02"   # example: BLE beacon / tag
+      name: "Beacon Keys"
+      timeout: 5min
+    # iBeacon example:
+    # - ibeacon_uuid: "74278bda-b644-4520-8f0c-720eaf059935"
+    #   ibeacon_major: 100
+    #   ibeacon_minor: 1
+    #   name: "iBeacon Lobby"
+
+# Optional: expose strongest BLE RSSI as a diagnostic
+# ble_rssi:
+#   - mac: "AA:BB:CC:DD:EE:01"
+#     name: "Phone Alice RSSI"
+
+# ---- I2C bus: SDA=GPIO6, SCL=GPIO7 (R6/R7 4.7k pull-ups on board) ----
+i2c:
+  sda: GPIO6
+  scl: GPIO7
+  scan: true
+  frequency: 100kHz
+
+sensor:
+  - platform: sht3xd
+    address: 0x44
+    temperature:
+      name: "Room Temperature"
+    humidity:
+      name: "Room Humidity"
+    update_interval: 30s
+
+  - platform: bme280_i2c
+    address: 0x76
+    temperature:
+      name: "BME280 Temperature"
+      oversampling: 2x
+    pressure:
+      name: "Room Pressure"
+    humidity:
+      name: "BME280 Humidity"
+    update_interval: 60s
+
+  - platform: bh1750
+    address: 0x23
+    name: "Room Illuminance"
+    update_interval: 15s
+
+# ---- PIR motion (AM312 on J2, 3.3V logic output) ----
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO22        # PIR OUT wired to IO22 (module pad 30)
+      mode: INPUT
+    name: "PIR Motion"
+    device_class: motion
+    filters:
+      - delayed_off: 10s
+
+# ---- Status / presence LEDs: 2x WS2812B-V5 on GPIO15 (R3 470R, 5V) ----
+light:
+  - platform: esp32_rmt_led_strip
+    pin: GPIO15
+    num_leds: 2
+    chipset: ws2812
+    rgb_order: GRB
+    name: "Status LEDs"
+    effects:
+      - pulse:
+          name: "Presence Pulse"
+          transition_length: 500ms
+          update_interval: 1s
+      - rainbow:
+          name: "Rainbow"
+          speed: 10
+
+# ---- EN/BOOT handled in hardware (SW1/SW2, R4/R5) ----
+# ---- Expansion header J4: 3V3, GND, SDA, SCL, GPIO20, GPIO21 ----
+
+# Note: for Thread border-router or Zigbee operation, flash the ESP32-C6 with
+# an OpenThread BR / Zigbee coordinator firmware instead of ESPHome (same board,
+# same RF front end and keepout).
