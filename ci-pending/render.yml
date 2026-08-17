@@ -1,0 +1,37 @@
+name: KiCad renders + fab zips (CI)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['boards/**/build.py', 'tools/**']
+permissions:
+  contents: write
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install KiCad 10 AppImage
+        run: |
+          mkdir -p /tmp/kicad && cd /tmp/kicad
+          curl -sL -o kicad.tar https://kicad-downloads.s3.cern.ch/appimage/stable/kicad-10.0.5-x86_64.AppImage.tar
+          tar xf kicad.tar
+          ./kicad-10.0.5-x86_64.AppImage --appimage-extract >/dev/null
+          echo "KICAD_CLI=$(ls /tmp/kicad/squashfs-root/bin/kicad-cli 2>/dev/null || ls /tmp/kicad/AppDir/usr/bin/kicad-cli)" >> $GITHUB_ENV
+      - name: Fetch datasheet STEP models
+        run: bash tools/fetch-assets.sh || true
+      - name: Regenerate boards + inject 3D models + render + fab zips
+        run: |
+          set -e
+          for b in roomnode-s3 roomnode-c6 roomnode-c3-mini airnode-s3; do
+            (cd boards/$b && python3 build.py)
+            python3 tools/add_3d_models.py boards/$b/$b.kicad_pcb
+          done
+          bash tools/produce_all.sh
+      - name: Commit renders and fab packages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A renders fab boards
+          git commit -m "CI: regenerated KiCad files, raytraced renders, JLCPCB fab zips [skip ci]" || echo "nothing to commit"
+          git push

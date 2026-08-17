@@ -1,0 +1,21 @@
+name: JLCPCB fab zips
+on:
+  push:
+    branches: [main]
+    paths: ['fab/**']
+  workflow_dispatch:
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Zip fab packages
+        run: |
+          for d in fab/*/; do
+            b=$(basename "$d")
+            (cd "$d" && zip -9 "../${b}_jlcpcb.zip" ./*)
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jlcpcb-fab-zips
+          path: fab/*_jlcpcb.zip
