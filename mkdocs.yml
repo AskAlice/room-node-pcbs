@@ -1,1 +1,24 @@
-x
+site_name: Room Node PCBs
+site_description: Multi-function ESP32 home-IoT room node boards — designs, firmware, datasheets
+repo_url: https://github.com/AskAlice/room-node-pcbs
+theme:
+  name: material
+  palette:
+    primary: green
+  features:
+    - navigation.tabs
+    - content.code.copy
+markdown_extensions:
+  - tables
+  - admonition
+  - attr_list
+nav:
+  - Home: index.md
+  - Component manifest: component-manifest.md
+  - Boards:
+      - RoomNode-S3: boards/roomnode-s3.md
+      - RoomNode-C6: boards/roomnode-c6.md
+      - RoomNode-C3-Mini: boards/roomnode-c3-mini.md
+      - AirNode-S3: boards/airnode-s3.md
+  - Firmware: firmware.md
+  - Datasheets: datasheets/index.md

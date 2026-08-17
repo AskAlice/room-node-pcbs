@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
+# Binaries are fetched/derived — see tools/fetch-assets.sh and the render CI workflow.
+# KiCad raytraced renders (renders/*_kicad3d*.png) and fab zips are committed by CI.
 docs/datasheets/*.pdf
 models/*.step
 models/*.STEP
-renders/*.png
